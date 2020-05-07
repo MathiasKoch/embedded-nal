@@ -1,11 +1,18 @@
+#![allow(unused_code)]
+
 use no_std_net::{IpAddr, SocketAddr};
+use core::fmt::{Debug};
+use super::TcpStack;
 /// An X509 certificate.
 #[derive(Clone)]
-enum Certificate<'a> {
+pub enum Certificate<'a> {
+    /// PEM encoded Certificate
     Pem(&'a [u8]),
+    /// Der encoded Certificate
     Der(&'a [u8]),
 }
 
+/// Identity to be used for client certificate authentication.
 #[derive(Clone)]
 pub struct Identity<'a> {
     // pkey: PKey<Private>,
@@ -35,16 +42,19 @@ pub enum Protocol {
     __NonExhaustive,
 }
 
+/// TlsSocket struct made to wrap a TcpSocket
 pub struct TlsSocket<T>(T);
 
 impl<T> TlsSocket<T> {
+    /// Get underlying TcpSocket
     pub fn socket(&self) -> &T {
         &self.0
     }
 }
-pub trait Ssl: TcpStack + Dns {
-    type Error: Debug;
-    fn connect_ssl(&self, socket: <Self as TcpStack>::TcpSocket, connector: TlsConnector, domain: &str, port: u16) -> 
+/// This trait is implemented by TCP/IP stacks with Tls capability. 
+pub trait Tls: TcpStack {
+    /// Connect securely to the given remote host and port.
+    fn connect_tls(&self, socket: <Self as TcpStack>::TcpSocket, connector: TlsConnector, domain: &str, ip: IpAddr, port: u16) -> 
         Result<TlsSocket<<Self as TcpStack>::TcpSocket>, Self::Error>;
 
 }
@@ -53,7 +63,7 @@ pub struct TlsConnectorBuilder<'a> {
     identity: Option<Identity<'a>>,
     min_protocol: Option<Protocol>,
     max_protocol: Option<Protocol>,
-    root_certificates: Certificate<'a>,
+    root_certificate: Certificate<'a>,
     accept_invalid_certs: bool,
     accept_invalid_hostnames: bool,
     use_sni: bool,
@@ -61,7 +71,7 @@ pub struct TlsConnectorBuilder<'a> {
 
 impl<'a> TlsConnectorBuilder<'a> {
     /// Sets the identity to be used for client certificate authentication.
-    pub fn identity(&mut self, identity: Identity) -> &mut TlsConnectorBuilder {
+    pub fn identity(&mut self, identity: Identity<'a>) -> &mut TlsConnectorBuilder<'a> {
         self.identity = Some(identity);
         self
     }
@@ -71,7 +81,7 @@ impl<'a> TlsConnectorBuilder<'a> {
     /// A value of `None` enables support for the oldest protocols supported by the implementation.
     ///
     /// Defaults to `Some(Protocol::Tlsv10)`.
-    pub fn min_protocol_version(&mut self, protocol: Option<Protocol>) -> &mut TlsConnectorBuilder {
+    pub fn min_protocol_version(&mut self, protocol: Option<Protocol>) -> &mut TlsConnectorBuilder<'a> {
         self.min_protocol = protocol;
         self
     }
@@ -81,7 +91,7 @@ impl<'a> TlsConnectorBuilder<'a> {
     /// A value of `None` enables support for the newest protocols supported by the implementation.
     ///
     /// Defaults to `None`.
-    pub fn max_protocol_version(&mut self, protocol: Option<Protocol>) -> &mut TlsConnectorBuilder {
+    pub fn max_protocol_version(&mut self, protocol: Option<Protocol>) -> &mut TlsConnectorBuilder<'a> {
         self.max_protocol = protocol;
         self
     }
@@ -92,8 +102,8 @@ impl<'a> TlsConnectorBuilder<'a> {
     /// to that set when communicating with servers not trusted by the system.
     ///
     /// Defaults to an empty set.
-    pub fn add_root_certificate(&mut self, cert: Certificate) -> &mut TlsConnectorBuilder {
-        self.root_certificates.push(cert);
+    pub fn add_root_certificate(&mut self, cert: Certificate<'a>) -> &mut TlsConnectorBuilder<'a>{
+        self.root_certificate = cert;
         self
     }
 
@@ -109,7 +119,7 @@ impl<'a> TlsConnectorBuilder<'a> {
     pub fn danger_accept_invalid_certs(
         &mut self,
         accept_invalid_certs: bool,
-    ) -> &mut TlsConnectorBuilder {
+    ) -> &mut TlsConnectorBuilder<'a> {
         self.accept_invalid_certs = accept_invalid_certs;
         self
     }
@@ -117,7 +127,7 @@ impl<'a> TlsConnectorBuilder<'a> {
     /// Controls the use of Server Name Indication (SNI).
     ///
     /// Defaults to `true`.
-    pub fn use_sni(&mut self, use_sni: bool) -> &mut TlsConnectorBuilder {
+    pub fn use_sni(&mut self, use_sni: bool) -> &mut TlsConnectorBuilder<'a> {
         self.use_sni = use_sni;
         self
     }
@@ -134,68 +144,62 @@ impl<'a> TlsConnectorBuilder<'a> {
     pub fn danger_accept_invalid_hostnames(
         &mut self,
         accept_invalid_hostnames: bool,
-    ) -> &mut TlsConnectorBuilder {
+    ) -> &mut TlsConnectorBuilder<'a> {
         self.accept_invalid_hostnames = accept_invalid_hostnames;
         self
     }
 
     /// Creates a new `TlsConnector`.
-    pub fn build(&self) -> TlsConnector {
+    pub fn build(self) -> TlsConnector<'a> {
         TlsConnector::new(self)
     }
 }
 
 
-#[derive(Clone)]
-pub struct TlsConnector {
-    identity: Option<Identity<'a>>,
-    min_protocol: Option<Protocol>,
-    max_protocol: Option<Protocol>,
-    root_certificates: Certificate<'a>,
-    accept_invalid_certs: bool,
-    accept_invalid_hostnames: bool,
-    use_sni: bool,
+// #[derive(Clone)]
+/// A builder for client-side TLS connections.
+pub struct TlsConnector<'a> {
+    builder: TlsConnectorBuilder<'a>,
 }
 
-impl<'a> TlsConnector {
+impl<'a> TlsConnector <'a>{
 
-    pub fn new(builder : TlsConnectorBuilder) -> Self{
-        Self{
-            identity : builder.identity, 
-            min_protocol : builder.min_protocol, 
-            max_protocol : builder.max_protocol, 
-            root_certificates : builder.root_certificates, 
-            accept_invalid_certs : builder.accept_invalid_certs, 
-            accept_invalid_hostnames : builder.accept_invalid_hostnames, 
-            use_sni : builder.use_sni, 
-        }
+    /// Returns a TlsConnector with the settings from the TlsConnectorBuilder
+    pub fn new(builder : TlsConnectorBuilder<'a>) -> Self{
+        Self{ builder }
     }
 
-    pub fn identity(&self) -> Option<Identity<'a>>{
-        self.identity
+    /// Returns the identity
+    pub fn identity(&self) -> &Option<Identity<'a>>{
+        &self.builder.identity
     }
 
+    /// Returns the minimum security protocol of the connector
     pub fn min_protocol(&self) -> Option<Protocol>{
-        self.min_protocol
+        self.builder.min_protocol
     }
-
+    
+    /// Returns the maximum security protocol of the connector
     pub fn max_protocol(&self) -> Option<Protocol>{
-        self.max_protocol
+        self.builder.max_protocol
     }
 
-    pub fn root_certificates(&self) -> Certificate<'a>{
-        self.root_certificates
+    /// Returns the certificate that is the root of trust for the connector.
+    pub fn root_certificate(&self) -> &Certificate<'a>{
+        &self.builder.root_certificate
     }
 
+    /// Will the connecter accept invalid certs
     pub fn accept_invalid_certs(&self) -> bool{
-        self.accept_invalid_certs
+        self.builder.accept_invalid_certs
     }
 
+    /// Will the connecter accept invalid hostnames
     pub fn accept_invalid_hostnames(&self) -> bool{
-        self.accept_invalid_hostnames
+        self.builder.accept_invalid_hostnames
     }
-
+    /// Use Server Name Indication (SNI).
     pub fn use_sni(&self) -> bool{
-        self.use_sni
+        self.builder.use_sni
     }
 }
