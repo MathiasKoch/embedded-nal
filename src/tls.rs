@@ -1,7 +1,4 @@
-#![allow(unused_code)]
-
-use no_std_net::{IpAddr, SocketAddr};
-use core::fmt::{Debug};
+use core::fmt::Debug;
 use super::TcpStack;
 /// An X509 certificate.
 #[derive(Clone)]
@@ -52,9 +49,9 @@ impl<T> TlsSocket<T> {
     }
 }
 /// This trait is implemented by TCP/IP stacks with Tls capability. 
-pub trait Tls: TcpStack {
+pub trait Tls: TcpStack + Dns {
     /// Connect securely to the given remote host and port.
-    fn connect_tls(&self, socket: <Self as TcpStack>::TcpSocket, connector: TlsConnector, domain: &str, ip: IpAddr, port: u16) -> 
+    fn connect_tls(&self, socket: <Self as TcpStack>::TcpSocket, connector: TlsConnector, domain: &str, port: u16) -> 
         Result<TlsSocket<<Self as TcpStack>::TcpSocket>, Self::Error>;
 
 }
