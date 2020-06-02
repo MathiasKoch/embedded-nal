@@ -1,4 +1,6 @@
-use super::TcpStack;
+//! An abstraction over platform-specific TLS implementations.
+
+use super::{Dns, TcpStack};
 use core::fmt::Debug;
 /// An X509 certificate.
 #[derive(Clone)]
@@ -43,11 +45,17 @@ pub enum Protocol {
 pub struct TlsSocket<T>(T);
 
 impl<T> TlsSocket<T> {
+	/// Create a new tls socket, wrapping an existing tcp socket
+	pub fn new(socket: T) -> Self {
+		TlsSocket(socket)
+	}
+
 	/// Get underlying TcpSocket
 	pub fn socket(&self) -> &T {
 		&self.0
 	}
 }
+
 /// This trait is implemented by TCP/IP stacks with Tls capability.
 pub trait Tls: TcpStack + Dns {
 	/// Connect securely to the given remote host and port.
@@ -57,7 +65,7 @@ pub trait Tls: TcpStack + Dns {
 		connector: TlsConnector,
 		domain: &str,
 		port: u16,
-	) -> Result<TlsSocket<<Self as TcpStack>::TcpSocket>, Self::Error>;
+	) -> Result<TlsSocket<<Self as TcpStack>::TcpSocket>, ()>;
 }
 /// A builder for `TlsConnector`s.
 pub struct TlsConnectorBuilder<'a> {
@@ -158,7 +166,9 @@ impl<'a> TlsConnectorBuilder<'a> {
 
 	/// Creates a new `TlsConnector`.
 	pub fn build(self) -> TlsConnector<'a> {
-		TlsConnector::new(self)
+		TlsConnector {
+			builder: self
+		}
 	}
 }
 
@@ -169,11 +179,6 @@ pub struct TlsConnector<'a> {
 }
 
 impl<'a> TlsConnector<'a> {
-	/// Returns a TlsConnector with the settings from the TlsConnectorBuilder
-	pub fn new(builder: TlsConnectorBuilder<'a>) -> Self {
-		Self { builder }
-	}
-
 	/// Returns the identity
 	pub fn identity(&self) -> &Option<Identity<'a>> {
 		&self.builder.identity

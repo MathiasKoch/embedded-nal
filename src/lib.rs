@@ -5,12 +5,11 @@
 #![deny(unsafe_code)]
 
 mod dns;
+pub mod tls;
+
 pub use dns::{Dns, AddrType};
 
 pub use no_std_net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-
-///Tls module
-pub mod tls;
 
 /// Whether a socket should block when a read/write can't be performed, or return early.
 pub enum Mode {
