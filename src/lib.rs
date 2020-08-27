@@ -4,10 +4,11 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+pub use nb;
 mod dns;
 pub mod tls;
 
-pub use dns::{Dns, AddrType};
+pub use dns::{AddrType, Dns};
 
 pub use no_std_net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
