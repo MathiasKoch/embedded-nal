@@ -38,6 +38,26 @@ pub trait Ssl {
     fn connect(&self, connector: TlsConnector) -> Result<Self::TlsSocket, ()>;
 }
 
+impl<T> core::ops::Deref for TlsSocket<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.socket()
+    }
+}
+
+/// This trait is implemented by TCP/IP stacks with Tls capability.
+pub trait Tls: TcpStack + Dns {
+	/// Connect securely to the given remote host and port.
+	fn connect_tls(
+		&self,
+		socket: <Self as TcpStack>::TcpSocket,
+		connector: TlsConnector,
+		domain: &str,
+		port: u16,
+	) -> Result<TlsSocket<<Self as TcpStack>::TcpSocket>, ()>;
+}
+
 /// A builder for `TlsConnector`s.
 pub struct TlsConnectorBuilder<'a> {
     identity: Option<Identity<'a>>,
@@ -136,25 +156,6 @@ impl<'a> TlsConnectorBuilder<'a> {
     }
 }
 
-/// A builder for client-side TLS connections.
-///
-/// # Examples
-///
-/// ```rust
-/// use native_tls::TlsConnector;
-/// use std::io::{Read, Write};
-/// use std::net::TcpStream;
-///
-/// let connector = TlsConnector::new().unwrap();
-///
-/// let stream = TcpStream::connect("google.com:443").unwrap();
-/// let mut stream = connector.connect("google.com", stream).unwrap();
-///
-/// stream.write_all(b"GET / HTTP/1.0\r\n\r\n").unwrap();
-/// let mut res = vec![];
-/// stream.read_to_end(&mut res).unwrap();
-/// println!("{}", String::from_utf8_lossy(&res));
-/// ```
 #[derive(Clone)]
 pub struct TlsConnector {
     connector: SslConnector,
@@ -163,46 +164,39 @@ pub struct TlsConnector {
     accept_invalid_certs: bool,
 }
 
-impl<'a> TlsConnector {
-    /// Returns a new connector with default settings.
-    pub fn new() -> Result<TlsConnector, ()> {
-        TlsConnector::builder().build()
-    }
+impl<'a> TlsConnector<'a> {
+	/// Returns the identity
+	pub fn identity(&self) -> &Option<Identity<'a>> {
+		&self.builder.identity
+	}
 
-    /// Returns a new builder for a `TlsConnector`.
-    pub fn builder() -> TlsConnectorBuilder<'a> {
-        TlsConnectorBuilder {
-            identity: None,
-            min_protocol: Some(Protocol::Tlsv10),
-            max_protocol: None,
-            root_certificates: vec![],
-            use_sni: true,
-            accept_invalid_certs: false,
-            accept_invalid_hostnames: false,
-        }
-    }
+	/// Returns the minimum security protocol of the connector
+	pub fn min_protocol(&self) -> Option<Protocol> {
+		self.builder.min_protocol
+	}
 
-    /// Initiates a TLS handshake.
-    ///
-    /// The provided domain will be used for both SNI and certificate hostname
-    /// validation.
-    ///
-    /// If the socket is nonblocking and a `WouldBlock` error is returned during
-    /// the handshake, a `HandshakeError::WouldBlock` error will be returned
-    /// which can be used to restart the handshake when the socket is ready
-    /// again.
-    ///
-    /// The domain is ignored if both SNI and hostname verification are
-    /// disabled.
-    pub fn connect<S>(
-        &self,
-        domain: &str,
-        stream: S,
-    ) -> result::Result<TlsStream<S>, HandshakeError<S>>
-    where
-        S: io::Read + io::Write,
-    {
-        let s = self.0.connect(domain, stream)?;
-        Ok(TlsStream(s))
-    }
+	/// Returns the maximum security protocol of the connector
+	pub fn max_protocol(&self) -> Option<Protocol> {
+		self.builder.max_protocol
+	}
+
+	/// Returns the certificate that is the root of trust for the connector.
+	pub fn root_certificate(&self) -> &Certificate<'a> {
+		&self.builder.root_certificate
+	}
+
+	/// Will the connecter accept invalid certs
+	pub fn accept_invalid_certs(&self) -> bool {
+		self.builder.accept_invalid_certs
+	}
+
+	/// Will the connecter accept invalid hostnames
+	pub fn accept_invalid_hostnames(&self) -> bool {
+		self.builder.accept_invalid_hostnames
+	}
+
+	/// Use Server Name Indication (SNI).
+	pub fn use_sni(&self) -> bool {
+		self.builder.use_sni
+	}
 }
