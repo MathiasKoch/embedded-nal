@@ -32,11 +32,7 @@ pub enum Protocol {
     __NonExhaustive,
 }
 
-pub trait Ssl {
-    type TlsSocket;
-
-    fn connect(&self, connector: TlsConnector) -> Result<Self::TlsSocket, ()>;
-}
+pub struct TlsSocket<T>(T);
 
 impl<T> core::ops::Deref for TlsSocket<T> {
     type Target = T;
