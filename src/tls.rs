@@ -1,3 +1,5 @@
+use crate::{Dns, TcpStack};
+
 /// An X509 certificate.
 #[derive(Clone)]
 enum Certificate<'a> {
@@ -148,13 +150,12 @@ impl<'a> TlsConnectorBuilder<'a> {
     /// Creates a new `TlsConnector`.
     pub fn build(&self) -> Result<TlsConnector, ()> {
         let connector = TlsConnector::new(self)?;
-        Ok(TlsConnector(connector))
+        Ok(connector)
     }
 }
 
 #[derive(Clone)]
 pub struct TlsConnector {
-    connector: SslConnector,
     use_sni: bool,
     accept_invalid_hostnames: bool,
     accept_invalid_certs: bool,
