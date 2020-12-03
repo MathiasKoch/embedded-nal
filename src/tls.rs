@@ -1,4 +1,4 @@
-use crate::{Dns, TcpStack};
+use crate::{Dns, TcpClientStack};
 use core::convert::{TryFrom, TryInto};
 use heapless::{consts, Vec};
 
@@ -46,16 +46,16 @@ impl<T> core::ops::Deref for TlsSocket<T> {
 }
 
 /// This trait extends implementer of TCP/IP stacks with Tls capability.
-pub trait Tls: TcpStack + Dns {
+pub trait Tls: TcpClientStack + Dns {
     type Error;
     type TlsConnector;
 
     /// Connect securely to the given remote host and port.
     fn connect<S>(
         &self,
-        socket: <Self as TcpStack>::TcpSocket,
+        socket: <Self as TcpClientStack>::TcpSocket,
         connector: Self::TlsConnector,
-    ) -> Result<TlsSocket<<Self as TcpStack>::TcpSocket>, <Self as Tls>::Error>;
+    ) -> Result<TlsSocket<<Self as TcpClientStack>::TcpSocket>, <Self as Tls>::Error>;
 }
 
 
@@ -94,12 +94,12 @@ impl<'a, CTX> TlsConnectorConfig<'a, CTX> {
     }
 
     /// Returns the maximum supported protocol version.
-    pub fn min_protocol(&self) -> Protocol {
+    pub fn min_protocol(&self) -> &Option<Protocol> {
         &self.min_protocol
     }
 
     /// Returns the maximum supported protocol version.
-    pub fn max_protocol(&self) -> Protocol {
+    pub fn max_protocol(&self) -> &Option<Protocol> {
         &self.max_protocol
     }
 

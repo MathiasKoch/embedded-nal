@@ -2,11 +2,12 @@
 
 #![doc(html_root_url = "https://docs.rs/embedded-nal/0.2.0")]
 #![no_std]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-pub use nb;
 mod dns;
+pub mod tls;
+pub use nb;
 pub use dns::{AddrType, Dns};
 
 pub use no_std_net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
