@@ -1,6 +1,7 @@
 use crate::{Dns, TcpClientStack};
 use core::convert::{TryFrom, TryInto};
 use heapless::{consts, Vec};
+use core::ops::Deref;
 
 /// An X509 certificate.
 #[derive(Debug, Copy, Clone)]
@@ -9,6 +10,7 @@ pub enum Certificate<'a> {
     Der(&'a [u8]),
 }
 
+/// An identity
 #[derive(Debug, Copy, Clone)]
 pub struct Identity<'a> {
     cert: Certificate<'a>,
@@ -35,9 +37,10 @@ pub enum Protocol {
     __NonExhaustive,
 }
 
+/// A TLS enabled socket
 pub struct TlsSocket<T>(T);
 
-impl<T> core::ops::Deref for TlsSocket<T> {
+impl<T> Deref for TlsSocket<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
