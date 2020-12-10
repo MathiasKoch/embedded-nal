@@ -58,10 +58,10 @@ pub trait TcpClient {
 		buffer: &mut [u8],
 	) -> nb::Result<usize, Self::Error>;
 
-	/// Read from the stream. Returns `Ok(n)`, which means `n` bytes of
+	/// Receive from the stream. Returns `Ok(n)`, which means `n` bytes of
 	/// data have been received and they have been placed in
 	/// `&buffer[0..n]`, or an error.
-	fn read_with<F>(&self, socket: &mut Self::TcpSocket, f: F) -> nb::Result<usize, Self::Error>
+	fn receive_with<F>(&self, socket: &mut Self::TcpSocket, f: F) -> nb::Result<usize, Self::Error>
     where
         F: FnOnce(&[u8], Option<&[u8]>) -> usize;
 
