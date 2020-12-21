@@ -1,5 +1,5 @@
-use heapless::{consts, String};
 use no_std_net::IpAddr;
+use crate::addr::HostAddr;
 
 /// This is the host address type to be returned by `gethostbyname`.
 ///
@@ -31,7 +31,7 @@ pub trait Dns {
 
 	/// Resolve the first ip address of a host, given its hostname and a desired
 	/// address record type to look for
-	fn get_host_by_name(&self, hostname: &str, addr_type: AddrType) -> Result<IpAddr, Self::Error>;
+	fn get_host_by_name(&self, hostname: &str, addr_type: AddrType) -> Result<HostAddr, Self::Error>;
 
 	/// Resolve the hostname of a host, given its ip address
 	///
@@ -39,5 +39,5 @@ pub trait Dns {
 	/// 255 bytes [`rfc1035`]
 	///
 	/// [`rfc1035`]: https://tools.ietf.org/html/rfc1035
-	fn get_host_by_address(&self, addr: IpAddr) -> Result<String<consts::U256>, Self::Error>;
+	fn get_host_by_address(&self, addr: IpAddr) -> Result<HostAddr, Self::Error>;
 }

@@ -6,7 +6,11 @@
 #![deny(unsafe_code)]
 
 mod dns;
+mod addr;
+
+#[cfg(feature = "tls")]
 pub mod tls;
+pub use addr::{HostAddr, HostSocketAddr};
 pub use nb;
 pub use dns::{AddrType, Dns};
 
@@ -36,7 +40,7 @@ pub trait TcpClientStack {
 	fn connect(
 		&self,
 		socket: &mut Self::TcpSocket,
-		remote: SocketAddr,
+		remote: HostSocketAddr,
 	) -> nb::Result<(), Self::Error>;
 
 	/// Check if this socket is connected
@@ -86,7 +90,7 @@ pub trait TcpFullStack: TcpClientStack {
 	fn accept(
 		&self,
 		socket: &mut Self::TcpSocket,
-	) -> nb::Result<(Self::TcpSocket, SocketAddr), Self::Error>;
+	) -> nb::Result<(Self::TcpSocket, HostSocketAddr), Self::Error>;
 }
 
 /// This trait is implemented by UDP/IP stacks. You could, for example, have
@@ -106,7 +110,7 @@ pub trait UdpClientStack {
 	/// Connect a UDP socket with a peer using a dynamically selected port.
 	///
 	/// Selects a port number automatically and initializes for read/writing.
-	fn connect(&self, socket: &mut Self::UdpSocket, remote: SocketAddr) -> Result<(), Self::Error>;
+	fn connect(&self, socket: &mut Self::UdpSocket, remote: HostSocketAddr) -> Result<(), Self::Error>;
 
 	/// Send a datagram to the remote host.
 	///
@@ -124,7 +128,7 @@ pub trait UdpClientStack {
 		&self,
 		socket: &mut Self::UdpSocket,
 		buffer: &mut [u8],
-	) -> nb::Result<(usize, SocketAddr), Self::Error>;
+	) -> nb::Result<(usize, HostSocketAddr), Self::Error>;
 
 	/// Close an existing UDP socket.
 	fn close(&self, socket: Self::UdpSocket) -> Result<(), Self::Error>;
@@ -140,7 +144,7 @@ pub trait UdpFullStack: UdpClientStack {
 	fn send_to(
 		&self,
 		socket: &mut Self::UdpSocket,
-		remote: SocketAddr,
+		remote: HostSocketAddr,
 		buffer: &[u8],
 	) -> nb::Result<(), Self::Error>;
 }
